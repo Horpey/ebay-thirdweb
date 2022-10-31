@@ -55,6 +55,7 @@ export default function Header({}: Props) {
         <div className="h-16 w-16 sm:w-28 md:w-44 cursor-pointer flex-shrink-0">
           <Link href="/">
             <Image
+              priority
               className="h-full w-full object-contain"
               alt="Thirdweb Logo"
               src="https://links.papareact.com/bdb"
