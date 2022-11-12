@@ -11,8 +11,9 @@ import {
   useMakeOffer,
   useBuyNow,
   useAddress,
+  useAcceptDirectListingOffer,
 } from "@thirdweb-dev/react";
-import { ListingType } from "@thirdweb-dev/sdk";
+import { ListingType, NATIVE_TOKENS } from "@thirdweb-dev/sdk";
 import { useRouter } from "next/router";
 import Header from "../../components/Header";
 import Countdown from "react-countdown";
@@ -23,6 +24,8 @@ function ListingPage() {
   const router = useRouter();
   const { listingId } = router.query as { listingId: string };
   const [bidAmount, setBidAmount] = useState("");
+
+  const address = useAddress();
 
   const [, switchNetwork] = useNetwork();
   const networkMismatch = useNetworkMismatch();
@@ -39,7 +42,9 @@ function ListingPage() {
 
   const { mutate: makeBid } = useMakeBid(contract);
 
-  const offers = useOffers(contract, listingId);
+  const { data: offers } = useOffers(contract, listingId);
+
+  const { mutate: acceptOffer } = useAcceptDirectListingOffer(contract);
 
   const { data: listing, isLoading, error } = useListing(contract, listingId);
 
@@ -233,6 +238,78 @@ function ListingPage() {
               Buy now
             </button>
           </div>
+
+          {listing.type === ListingType.Direct && offers && (
+            <div className="grid grid-cols-2 ">
+              <p className="font-bold">Offers:</p>
+              <p className="font-bold">
+                {offers.length > 0 ? offers.length : 0}
+              </p>
+
+              {offers.length > 0 &&
+                offers.map((offer, index) => (
+                  <>
+                    <p className="flex item-center ml-5 text-sm italic">
+                      <UserCircleIcon className="h-3 mr-2" />
+                      {offer.offeror.slice(0, 5) +
+                        "..." +
+                        offer.offeror.slice(-5)}
+                    </p>
+
+                    <div>
+                      <p
+                        key={
+                          offer.listingId +
+                          offer.offeror +
+                          offer.totalOfferAmount.toString()
+                        }
+                        className="text-sm italic"
+                      >
+                        {ethers.utils.formatEther(offer.totalOfferAmount)}{" "}
+                        {NATIVE_TOKENS[network].symbol}
+                      </p>
+
+                      {listing.sellerAddress === address && (
+                        <button
+                          onClick={() => {
+                            acceptOffer(
+                              {
+                                listingId,
+                                addressOfOfferor: offer.offeror,
+                              },
+                              {
+                                onSuccess(data, variables, context) {
+                                  alert("Offer accepted successfully");
+                                  console.log(
+                                    "SUCCESS",
+                                    data,
+                                    variables,
+                                    context
+                                  );
+                                  router.replace("/");
+                                },
+                                onError(error, variables, context) {
+                                  alert("Error: Offer could not be accepted");
+                                  console.log(
+                                    "ERROR",
+                                    error,
+                                    variables,
+                                    context
+                                  );
+                                },
+                              }
+                            );
+                          }}
+                          className="p-2 w-32 bg-red-500/50 rounded-lg font-bold text-xs cursor-pointer"
+                        >
+                          Accept Offer
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 space-y-2 items-center justify-end">
             <hr className="col-span-2" />
