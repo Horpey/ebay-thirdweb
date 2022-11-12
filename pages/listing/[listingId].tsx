@@ -37,13 +37,15 @@ function ListingPage() {
     "marketplace"
   );
 
+  const { mutate: makeBid } = useMakeBid(contract);
+
+  const offers = useOffers(contract, listingId);
+
   const { data: listing, isLoading, error } = useListing(contract, listingId);
 
   const { mutate: buyNow } = useBuyNow(contract);
 
   const { mutate: makeOffer } = useMakeOffer(contract);
-
-  const { data: offers } = useOffers(contract, listingId);
 
   console.log(offers);
 
@@ -138,6 +140,7 @@ function ListingPage() {
             onSuccess(data, variables, context) {
               alert("Offer created successfully");
               console.log("SUCCESS", data, variables, context);
+              setBidAmount("");
             },
             onError(error, variables, context) {
               alert("Error: Offer could not be created");
@@ -148,6 +151,25 @@ function ListingPage() {
       }
 
       if (listing?.type === ListingType.Auction) {
+        console.log("Making Bid");
+
+        await makeBid(
+          {
+            listingId,
+            bid: bidAmount,
+          },
+          {
+            onSuccess(data, variables, context) {
+              alert("Bid created successfully");
+              console.log("SUCCESS", data, variables, context);
+              setBidAmount("");
+            },
+            onError(error, variables, context) {
+              alert("Error: Bid could not be created");
+              console.log("ERROR", error, variables, context);
+            },
+          }
+        );
       }
     } catch (error) {
       console.error(error);
